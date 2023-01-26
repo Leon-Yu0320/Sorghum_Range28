@@ -3,6 +3,9 @@
 **Author: Li'ang Yu, Andrew Nelson**\
 **Date: June 14th, 2022**
 
+
+<img width="1123" alt="image" src="https://user-images.githubusercontent.com/69836931/214940798-f8fc9b72-87c9-4b71-93e4-22a989f95c9c.png">
+
 - [**Range 28 Sorghum epitranscriptome project**](#range-28-sorghum-epitranscriptome-project)
 - [**Section I Genomic variants and pan-genome analysis of sorghum accessions**](#section-i-genomic-variants-and-pan-genome-analysis-of-sorghum-accessions)
   - [**Download sorghum association pannel variants data**](#download-sorghum-association-pannel-variants-data)
