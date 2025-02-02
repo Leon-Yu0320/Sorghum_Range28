@@ -1,0 +1,986 @@
+---
+title: "Sorghum-Range28-Main-Figure"
+author: "Li'ang Yu, Andrew Nelson, Duke Pauli"
+date: "2025-01-03"
+output:
+  html_document:
+    df_print: paged  
+    toc: true
+    theme: united
+---
+
+# Load packages
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(ggplot2)
+library(dplyr)
+library(colourvalues)
+library(pheatmap)
+library(knitr)
+library(RColorBrewer)
+library(corrplot)
+library(PoiClaClu)
+library(stats)
+library(reshape2)
+library(ggpubr)
+library(tidyr)
+library(cowplot)
+library(viridis)
+library(Hmisc)
+library(stringr)
+```
+
+# Functions been created in the analysis
+```{r}
+### Z-score
+scale_rows = function(x){
+    m = apply(x, 1, mean, na.rm = T)
+    s = apply(x, 1, sd, na.rm = T)
+    return((x - m) / s)
+}
+
+### Summary 
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+
+### Correlation
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+```
+
+# Figure.1-Genetic-phenotypic-diversity
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+weight <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Weight.csv")
+Oxdative <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Oxidative_clean-20220324.csv")
+LIM <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/LI6800_clean-20220324-morning.csv")
+LIA <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/LI6800_clean-20220324-afternoon.csv")
+Metabolites <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Metabolites-2024.csv", header = T)
+Root <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Root-score.csv")
+
+head(weight)
+head(Oxdative)
+head(LIM)
+head(LIA)
+head(Metabolites)
+head(Root)
+```
+
+## Figure 1D and 1E Morphorlogical data
+### Plot Morphological-Data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+Root
+Root$Condition <- factor(Root$Condition , levels = c("WW", "WL"))
+
+ ggplot(Root, aes(x = Condition, y = height, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) 
+ 
+
+ ggplot(Root, aes(x = Condition, y = width, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) 
+ 
+
+  ggplot(Root, aes(x = Condition, y = Tiller.No., alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) 
+```
+
+### Plot the Biomass data
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+weight
+weight$Treat <- factor(weight$Treat  , levels = c("WW", "WL"))
+
+ ggplot(weight, aes(x = Treat, y = biomass_total, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+   theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+ 
+  ggplot(weight, aes(x = Treat, y = Three_leaves, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+   theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+```
+
+## Figure 1F Licor-6800 data
+
+### Afternoon dataset
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+### Afternoon dataset 
+LIA
+colnames(LIA)
+
+LIA_ave <- LIA %>% 
+  group_by(ID) %>% 
+  dplyr::summarize(across(c("WUEi", "A", "Ci", "gsw", "VPDleaf", "Fv..Fm.", "H2O_r", "Tair", "Tleaf"), 
+                   mean, .names = "mean_{.col}"))
+
+LIA_ave_clean <- separate(LIA_ave, ID, c("Genotype", "Condition", "Time"))
+LIA_ave_clean$Index <- paste0(LIA_ave_clean$Genotype, "_", LIA_ave_clean$Condition)
+LIA_ave_clean
+```
+### Afternoon dataset plot
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+A1 <- ggplot(LIA_ave_clean[LIA_ave_clean$Condition == "WL",],aes(x = Time,y =mean_WUEi, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+A2 <- ggplot(LIA_ave_clean[LIA_ave_clean$Condition == "WL",],aes(x = Time,y =mean_Fv..Fm., color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+A3 <- ggplot(LIA_ave_clean[LIA_ave_clean$Condition == "WL",],aes(x = Time,y =mean_Ci, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+```
+
+### Morning dataset
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+LIM
+colnames(LIM)
+LIM_ave <- LIM %>% group_by(ID) %>%  dplyr::summarize(across(c("WUEi", "A", "Ci", "gsw", 
+                                                       "VPDleaf", "Fv..Fm.", "H2O_r",
+                                                       "Tair", "Tair", "Tleaf"), mean, .names = "mean_{.col}"))
+LIM_ave_clean <- separate(LIM_ave, ID, c("Genotype", "Condition", "Time"))
+LIM_ave_clean$Index <- paste0(LIM_ave_clean$Genotype, "_", LIM_ave_clean$Condition)
+LIM_ave_clean
+```
+
+### Morning dataset plot
+```{r fig.height=6, fig.width=10, message=FALSE, warning=FALSE, paged.print=TRUE}
+
+A4 <- ggplot(LIM_ave_clean[LIM_ave_clean$Condition == "WL",],aes(x = Time,y =mean_WUEi, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+A5 <-ggplot(LIM_ave_clean[LIM_ave_clean$Condition == "WL",],aes(x = Time,y =mean_Fv..Fm., color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+A6 <-ggplot(LIM_ave_clean[LIM_ave_clean$Condition == "WL",],aes(x = Time,y =mean_Ci, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+plot_grid(A1, A2, A3, A4, A5, A6)
+```
+# Figure.2-Molecular-response
+## Figure 2B DEGs comparison
+### Summarize DEGs
+```{r paged.print=TRUE}
+A_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_A.csv", header =T)
+B_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_B.csv", header =T)
+C_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_C.csv", header =T)
+D_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_D.csv", header =T)
+E_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_E.csv", header =T)
+F_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_F.csv", header =T)
+
+
+Combine <- na.omit(rbind(A_Group,B_Group,C_Group,D_Group,E_Group,F_Group))
+names(Combine)[8] = "GeneID"
+head(Combine, 50)
+
+### Filter differentially expressed genes based on following creteria
+donw_gene <- Combine[Combine$padj < 0.05 & Combine$log2FoldChange < -1,]
+donw_gene <- donw_gene %>% group_by(Sample) %>% mutate(Down = n())
+donw_summary <- unique(donw_gene[,c("Sample","Down")])
+
+up_gene <- Combine[Combine$padj < 0.05 & Combine$log2FoldChange > 1,]
+up_gene <- up_gene %>% group_by(Sample) %>% mutate(up = n())
+up_summary <- unique(up_gene[,c("Sample","up")])
+
+combind_summary <- left_join(up_summary, donw_summary, by = "Sample")
+head(combind_summary, 40) 
+```
+
+
+### Plot line graph of DEGs at differene time
+```{r fig.height=3, fig.width=5, paged.print=TRUE}
+
+Plot_DEGs <- melt(combind_summary, id.vars = c("Sample"))
+plot_summary <- Plot_DEGs %>% separate(Sample, c("Accession", "Time"))
+plot_summary$Index <- paste0(plot_summary$Accession, "_", plot_summary$variable)
+
+plot_summary[is.na(plot_summary)] <- 0
+
+ggplot(data=plot_summary, aes(x = Time, y = value, color = Accession, group = Index)) +
+  geom_point(size = 3, aes(alpha = Accession, shape = variable)) +
+  geom_line(size = 0.5, aes(group = Index, lty= variable, color = Accession)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+  theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90)) +
+  ylab("Numbers of DEGs") 
+
+
+```
+## Figure 2E Metabolites profile
+### Metabolites data (2024)
+```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+Met_field <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Metabolites-2024-all.csv",  header = T, row.names = 1)
+
+Met_field <-Met_field %>%
+  filter(!str_detect(Time, "TP2|TP4|TP6|TP8"))
+datMet_field <- Met_field[,6:57]
+
+Met_field_ave <- data.frame(matrix(ncol = 52, nrow = 48))
+vector <- unique(Met_field$ID)
+colnames(Met_field_ave) <- colnames(datMet_field)
+rownames(Met_field_ave) <- vector
+head(datMet_field,30)
+
+datTrait <- datMet_field
+
+
+for (i in 1:length(vector)){
+  Met_field_ave[grepl(vector[i],rownames(Met_field_ave)),] <- colMeans(datTrait[grepl(vector[1],rownames(datTrait)),])
+}
+```
+
+## Figure 2F Line graph of oxidative stress
+
+### Organzie Oxidative stress data
+```{r}
+Oxdative
+colnames(Oxdative)
+Oxdative_ave <- Oxdative %>% group_by(ID) %>% dplyr::summarize(across(c("AO", "flav", "pro","TAC","GPX", "chl_b"), mean, .names = "mean_{.col}"))
+Oxdative_ave_clean <- separate(Oxdative_ave, ID, c("Genotype", "Condition", "Time"))
+Oxdative_ave_clean$Index <- paste0(Oxdative_ave_clean$Genotype, "_", Oxdative_ave_clean$Condition)
+Oxdative_ave_clean
+
+```
+
+### Plot Oxdative stress data
+```{r fig.height=5, fig.width=6, message=FALSE, warning=FALSE, paged.print=TRUE}
+
+B1 <- ggplot(Oxdative_ave_clean[Oxdative_ave_clean$Condition == "WL",],
+             aes(x = Time,y =mean_AO, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+ theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+B2 <- ggplot(Oxdative_ave_clean[Oxdative_ave_clean$Condition == "WL",],
+             aes(x = Time,y =mean_flav, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+ theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+B3 <- ggplot(Oxdative_ave_clean[Oxdative_ave_clean$Condition == "WL",],aes(x = Time,y =mean_pro, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+ theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+B4 <- ggplot(Oxdative_ave_clean[Oxdative_ave_clean$Condition == "WL",],aes(x = Time,y =mean_GPX, color = Genotype, Group = Index)) +
+  geom_point(size = 3, aes(alpha = Genotype, shape = Condition)) +
+  geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Genotype)) +
+  theme_classic() +
+  scale_alpha_manual(values = c(A=1, B=0.5, C=0.5, D=0.5, E=0.5, F=0.5)) +
+  scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+ theme(axis.text.x=element_text(angle=0), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+plot_grid(B1, B2, B3, B4)
+```
+
+## Figure 2E PCA of metabolites
+```{r}
+datTrait_result <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Metabolites_field_PCA.csv",  header = T, row.names = 1)
+
+datTrait_result$Sample <- rownames(datTrait_result)
+datTrait_result <- separate(datTrait_result, Sample, c("Genotype", "Condition", "Time"))
+
+### GHenotype effects
+datTrait_result$Condition <- factor(datTrait_result$Condition, levels = c("WW", "WL"))
+
+ggplot(datTrait_result, aes(x = PC1, y = PC2, color = factor(Genotype), shape = factor(Condition))) + 
+  geom_point(size = 3,aes(color=factor(Genotype), shape = factor(Condition))) + 
+  scale_color_manual(values=c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) + 
+  xlab(paste0("PC1")) + 
+  ylab(paste0("PC2")) + 
+  theme_classic() +
+   theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+### Timepoints effects
+ggplot(datTrait_result, aes(x = PC2, y = PC3, color = factor(Time), shape = factor(Condition))) + 
+  geom_point(size = 3,aes(color=factor(Time), shape = factor(Condition))) + 
+  scale_color_manual(values=c(TP1="#1F2E82", TP3="grey", 
+                              TP5="#E22859", TP7="#1D88BD")) + 
+  xlab(paste0("PC2")) + 
+  ylab(paste0("PC3")) + 
+  theme_classic() + theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+```
+
+# Figure.3-RCMs-and-Transcripts-status
+## Figure 3A Heatmap of selected transcripts
+### Prepare the Z-score transformed data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+annotation_colors = list(
+    Time = c(TP1="#1F2E82", TP3="grey", TP5="#E22859", TP7="#1D88BD"),
+    Accession = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF"))
+
+sample_meta_col <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Heatmap_Meta-cols.csv", header = T, row.names = 1)
+sample_meta_col
+
+sample_meta_row <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Heatmap_Meta-rows.csv", header = T, row.names = 1)
+sample_meta_row
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+Sorghum_vsd <- read.csv("/Users/leon/Documents/Project/Sorghum/4_FeatureCounts/Zscore_vsd_20230101.csv", header = T)
+MF_full <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/MF_full.csv", header = T)
+head(Sorghum_vsd )
+extract_df <- unique(MF_full[, c("Transcripts"), drop = F])
+
+Plot_df <- right_join(Sorghum_vsd, extract_df, by = "Transcripts")
+rownames(Plot_df) <- Plot_df$Transcripts
+
+pheatmap(Plot_df[,2:49] %>% na.omit(),
+               color = inferno(30),
+               clustering_distance_r = "correlation", 
+               annotation_col = sample_meta_col[,"Accession", drop = F],
+               annotation_colors = annotation_colors,
+              cutree_rows = 3, cutree_cols = 5,
+               show_colnames =T,show_rownames = F,cluster_rows = T, cluster_cols = T,
+               fontsize_row = 4, fontsize_col = 4, angle_col = 90, border_color = NA)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+MF.transcripts.order <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Z-score-frequency-lineGraph.csv", header = T)
+MF.transcripts.ID <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Z-score-frequency-lineGraph-ID-order.csv", header = T)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+MF.transcripts.order.melt <- melt(MF.transcripts.order, 
+                                  id.vars = c("Group", "Transcripts", "Class"))
+MF.transcripts.order.melt$variable <- factor(MF.transcripts.order.melt$variable , 
+                                             levels = MF.transcripts.ID$variable)
+
+MF.transcripts.order.melt$Index <- paste0(MF.transcripts.order.melt$Transcripts, 
+                                          "_", MF.transcripts.order.melt$Class)
+MF.transcripts.order.melt <- left_join(MF.transcripts.order.melt, MF.transcripts.ID, by = "variable")
+
+head(MF.transcripts.order.melt)
+```
+
+## Figure 3C Modification density and transcript
+### Plot the frequency and transcripts abundance
+```{r fig.height=30, fig.width=30, message=FALSE, warning=FALSE, paged.print=TRUE}
+P1 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group1" & 
+                                         MF.transcripts.order.melt$Class != "Density",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b",Frequency="#3caeb9", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+P2 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group2" &
+                                         MF.transcripts.order.melt$Class != "Density",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  #geom_point(alpha = 0.5, size = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b",Frequency="#3caeb9", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+P3 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group3" &
+                                         MF.transcripts.order.melt$Class != "Density",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  #geom_point(alpha = 0.5, size = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b",Frequency="#3caeb9", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+plot_grid(P1, P2, P3, nrow = 3)
+```
+## Figure 3D Modification freq and transcript
+### Plot the frequency and transcripts abundance
+```{r fig.height=30, fig.width=30}
+P4 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group1" & 
+                                         MF.transcripts.order.melt$Class != "Frequency",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  #geom_point(alpha = 0.5, size = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+P5 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group2" &
+                                         MF.transcripts.order.melt$Class != "Frequency",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  #geom_point(alpha = 0.5, size = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+P6 <- ggplot(MF.transcripts.order.melt[MF.transcripts.order.melt$Group == "Group3" &
+                                         MF.transcripts.order.melt$Class != "Frequency",], 
+       aes(x= variable, y=value, group = Index, color = Class)) +
+  geom_line(size = 0.05,alpha = 0.1) +
+  #geom_point(alpha = 0.5, size = 0.1) +
+  ylab("modification density (Z-score)") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class, color = Class), alpha=0.5) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  scale_color_manual(values = c(Transcripts ="#ffa34b", Density = "#00436d")) +
+  theme_classic() + ylim(-3,3) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+plot_grid(P4, P5, P6, nrow = 3)
+```
+
+## Figure 3E Boxplot of modification density and frequency
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+RCM_comp <- MF.transcripts.order.melt
+RCM_comp <- separate(RCM_comp, variable, c("Genotype", "Condition", "Time"))
+RCM_comp$Clade <- paste0(RCM_comp$Group, "_", RCM_comp$Cluster)
+head(RCM_comp)
+
+RCM_comp.plot <- RCM_comp[RCM_comp$Clade == "Group1_Class II" | RCM_comp$Clade == "Group1_Class IV" |
+                          RCM_comp$Clade == "Group2_Classs III" | RCM_comp$Clade == "Group2_Class V" |
+                          RCM_comp$Clade == "Group3_Class I" | RCM_comp$Clade == "Group3_Class IV",]
+
+RCM_comp.plot$Clade <- factor(RCM_comp.plot$Clade, levels = c("Group3_Class IV", "Group1_Class II","Group2_Class V",
+                                                              "Group2_Classs III","Group3_Class I","Group1_Class IV"))
+
+
+C1 <- ggplot(RCM_comp.plot[RCM_comp.plot$Class == "Transcripts" | RCM_comp.plot$Class == "Frequency",],
+        aes(x = Clade, y = value, fill = Class)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(Transcripts ="#ffa34b",Frequency="#3caeb9", Density = "#00436d")) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("Frequency") + 
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+
+C2 <- ggplot(RCM_comp.plot[RCM_comp.plot$Class == "Transcripts" | RCM_comp.plot$Class == "Density",],
+        aes(x = Clade, y = value, fill = Class)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(Transcripts ="#ffa34b",Frequency="#3caeb9", Density = "#00436d")) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("Frequency") + 
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+plot_grid(C1,C2, nrow = 1)
+
+```
+
+
+# Figure.5-Darkmegenta-integration
+## Figure 5C CDF3 gene correlation
+```{r}
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+
+```
+
+```{r message=TRUE, warning=FALSE, paged.print=TRUE}
+CDF3.gene <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/15_Cytoscape/Correlation-comp-target.csv", header = T)
+Zscore_vsd <- read.csv("/Users/leon/Documents/Project/Sorghum/4_FeatureCounts/Zscore_vsd_20230101.csv", header = T)
+
+CDF3.Target.Zscore <- left_join(CDF3.gene[CDF3.gene$Class == "CDF3",], Zscore_vsd, by = "Transcripts")
+CDF3.module.Zscore <- left_join(CDF3.gene[CDF3.gene$Class == "Non-target",], Zscore_vsd, by = "Transcripts")
+Global.select <- Zscore_vsd[sample(nrow(Zscore_vsd), 392), ]
+```
+
+```{r message=TRUE, warning=FALSE, paged.print=TRUE}
+### For CDF3 target genes
+df1 <- data.frame(matrix(ncol = 4 , nrow = nrow(CDF3.Target.Zscore)))
+colnames(df1) <- c("row", "column", "R", "P-value")
+
+CDF3.Zscore <- CDF3.Target.Zscore[CDF3.Target.Zscore$Transcripts == "Sobic.002G421900.1",]
+
+for (i in 1:nrow(CDF3.Target.Zscore)){
+  comp1 <- CDF3.Target.Zscore[i,]
+  comp2 <- CDF3.Zscore
+  comp.df <- rbind(comp1, comp2)
+  res <- rcorr(as.vector(comp.df[1,3:50]), as.vector(comp.df[2,3:50]),  type=c("pearson"))
+  df1[i,1:4] <- flattenCorrMatrix(res$r, res$P)
+  df1[i,1] <- comp1$Transcripts
+}
+df1$Type <- "CDF3-target"
+
+### For module genes
+CDF3.module.select <- CDF3.module.Zscore 
+df2 <- data.frame(matrix(ncol = 4 , nrow = nrow(CDF3.module.select)))
+colnames(df2) <- c("row", "column", "R", "P-value")
+
+for (i in 1:nrow(CDF3.module.select)){
+  comp1 <- CDF3.module.select[i,]
+  comp2 <- CDF3.Zscore
+  comp.df <- rbind(comp1, comp2)
+  res <- rcorr(as.vector(comp.df[1,3:50]), as.vector(comp.df[2,3:50]),  type=c("pearson"))
+  df2[i,1:4] <- flattenCorrMatrix(res$r, res$P)
+  df2[i,1] <- comp1$Transcripts
+}
+df2$Type <- "Others"
+
+### For all genes
+df3 <- data.frame(matrix(ncol = 4 , nrow = nrow(Global.select)))
+colnames(df3) <- c("row", "column", "R", "P-value")
+
+for (i in 1:nrow(Global.select)){
+  comp1 <- Global.select[i,1:49]
+  comp2 <- CDF3.Zscore[1,c(1,3:50)]
+  comp.df <- rbind(comp1, comp2)
+  res <- rcorr(as.vector(comp.df[1,2:49]), as.vector(comp.df[2,2:49]),  type=c("pearson"))
+  df3[i,1:4] <- flattenCorrMatrix(res$r, res$P)
+  df3[i,1] <- comp1$Transcripts
+}
+df3$Type <- "Global"
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+CDF.plot <- bind_rows(df1,df2, df3)
+write.csv(CDF.plot, "/Users/leon/Desktop/correlation.csv")
+
+my_comparisons <- list( c("CDF3-target", "Others"), c("CDF3-target", "Global"))
+CDF.plot$Type <- factor(CDF.plot$Type, levels = c("CDF3-target", "Others", "Global"))
+
+ggplot(CDF.plot, fill = "grey",
+              aes(x = Type, y = abs(R))) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      #scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                               #    C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Group") +
+      stat_compare_means(comparisons = my_comparisons, method = "t.test") +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+```
+
+## Figure 5D CDF3 log2FC score
+
+### Check DEG results
+```{r paged.print=TRUE}
+A_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_A.csv", header =T)
+B_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_B.csv", header =T)
+C_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_C.csv", header =T)
+D_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_D.csv", header =T)
+E_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_E.csv", header =T)
+F_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_F.csv", header =T)
+Combine <- na.omit(rbind(A_Group,B_Group,C_Group,D_Group,E_Group,F_Group))
+names(Combine)[8] = "GeneID"
+head(Combine, 50)
+```
+
+### Plot the LogFC data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+CDF3.logFC.gene <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/15_Cytoscape/Correlation-comp-target.csv", header = T)
+colnames(CDF3.logFC.gene) <- c("GeneID", "Class")
+CDF3.logFC <-  left_join(CDF3.logFC.gene, Combine, by = "GeneID" )
+head(CDF3.logFC)
+
+CDF3.logFC.plot <- CDF3.logFC %>% dplyr::group_by(GeneID, Class) %>% dplyr::summarise(mean_logFC = mean(log2FoldChange)) %>% na.omit()
+
+ggplot(CDF3.logFC.plot, fill = "grey",
+              aes(x = Class, y = -mean_logFC)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      #scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                               #    C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Group") +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+```
+
+## Figure 5F Line graph of selected traits
+### Plot the phenotype along side the heatMap
+```{r fig.height=8, fig.width=10}
+Traits.HeatMap <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/HeatMap-pair-traits-Map.csv", header = T)
+ID.order <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/HeatMap-pair-traits-ID.csv", header = T)
+
+
+Traits.HeatMap$Name <- factor(Traits.HeatMap$Name , levels = ID.order$Order)
+
+magenta1 <- ggplot(Traits.HeatMap, aes(x= Name, y=A, group = Rep)) +
+  geom_line(size = 0.4,alpha = 0.2) +
+  geom_point(alpha = 1, size = 0.8) +
+  ylab("A") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class), alpha=0.3) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  theme_classic() +
+  theme(axis.text.x=element_text(angle=90), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+magenta2 <- ggplot(Traits.HeatMap, aes(x= Name, y=flav, group = Rep)) +
+  geom_line(size = 0.4,alpha = 0.2) +
+  geom_point(alpha = 1, size = 0.8) +
+  ylab("flav") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class), alpha=0.3) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  theme_classic() +
+  theme(axis.text.x=element_text(angle=90), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+
+magenta3 <- ggplot(Traits.HeatMap, aes(x= Name, y=TAC, group = Rep)) +
+  geom_line(size = 0.4,alpha = 0.2) +
+  geom_point(alpha = 1, size = 0.8) +
+  ylab("Tleaf") +
+  xlab("Sample")+
+  stat_summary(fun.data = mean_se, geom="ribbon", linetype=0, aes(group=Class), alpha=0.3) +
+  stat_summary(fun=mean, aes(group=Class),  size=0.7, geom="line", linetype = "dashed") +
+  theme_classic() +
+  theme(axis.text.x=element_text(angle=90), axis.text.y=element_text(angle=90), legend.position = "none") 
+
+plot_grid(magenta1,magenta2, magenta3, nrow = 3)
+
+```
+
+# Figure.6-Salmon-integration
+
+## Figure 6F Expression of three genes
+### Plot time-seiries response
+
+```{r message=TRUE, warning=TRUE, paged.print=TRUE}
+Sb.response.Z <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Varoquax/Large-drought-TPM.csv", header = T, row.names = 1) %>% scale_rows()
+write.csv(Sb.response.Z, "~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Varoquax/Large-drought-Z.csv")
+Sb.response <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Varoquax/Large-drought-line-graph.csv", header = T) 
+
+Sb.response$Index <- paste0(Sb.response$Condition, "_", Sb.response$Gene)
+Sb.response.leaf <- Sb.response[Sb.response$Tissue == "Leaves",]
+Sb.response.root <- Sb.response[Sb.response$Tissue == "Roots",]
+head(Sb.response.leaf)
+```
+
+```{r message=TRUE, warning=TRUE, paged.print=TRUE}
+
+Sb.response.leaf %>% ggplot(aes(x=Week, y = TPM, color= Gene, Group = Index)) +
+  geom_line(size = 0.4, aes(lty = Genotype, alpha = Genotype))+ 
+  geom_point(size = 2, aes(shape = Genotype, alpha = Genotype))+
+  theme_classic()+
+  scale_color_manual(values = c("PPDK"="steelblue", "CRRL"="tomato", "DUS2"="black")) +
+  scale_alpha_manual(values = c("RTX430"= 0.5, "BTX642"= 0.8)) +
+  ylab("Transcript abundance (Z-score)") +
+  xlab("Growing period (week)") + facet_wrap( ~ Condition)
+
+Sb.response.leaf[Sb.response.leaf$Condition == "Control",] %>% ggplot(aes(x=Week, y = TPM, color= Gene, Group = Index)) +
+  geom_line(size = 0.4, aes(lty = Genotype, alpha = Genotype))+ 
+  geom_point(size = 2, aes(shape = Genotype, alpha = Genotype))+
+  theme_classic()+
+  scale_color_manual(values = c("PPDK"="steelblue", "CRRL"="tomato", "DUS2"="black")) +
+  scale_alpha_manual(values = c("RTX430"= 0.5, "BTX642"= 0.8)) +
+  ylab("Transcript abundance (Z-score)") +
+  xlab("Growing period (week)") + facet_wrap( ~ Genotype)
+
+### Response before flowering
+Sb.response.leaf[Sb.response.leaf$Condition == "PRFD",] %>% ggplot(aes(x=Week, y = TPM, color= Gene, Group = Index)) +
+  geom_line(size = 0.4, aes(lty = Genotype, alpha = Genotype))+ 
+  geom_point(size = 2, aes(shape = Genotype, alpha = Genotype))+
+  theme_classic()+
+  scale_color_manual(values = c("PPDK"="steelblue", "CRRL"="tomato", "DUS2"="black")) +
+  scale_alpha_manual(values = c("RTX430"= 0.5, "BTX642"= 0.8)) +
+  ylab("Transcript abundance (Z-score)") +
+  xlab("Growing period (week)") + facet_wrap( ~ Genotype) + xlim(2,9)
+
+### Response after flowering
+Sb.response.leaf[Sb.response.leaf$Condition == "POFD",] %>% ggplot(aes(x=Week, y = TPM, color= Gene, Group = Index)) +
+  geom_line(size = 0.4, aes(lty = Genotype, alpha = Genotype))+ 
+  geom_point(size = 2, aes(shape = Genotype, alpha = Genotype))+
+  theme_classic()+
+  scale_color_manual(values = c("PPDK"="steelblue", "CRRL"="tomato", "DUS2"="black")) +
+  scale_alpha_manual(values = c("RTX430"= 0.5, "BTX642"= 0.8)) +
+  ylab("Transcript abundance (Z-score)") +
+  xlab("Growing period (week)") + facet_wrap( ~ Genotype) + xlim(10,17)
+```
+
+## Figure 6G HeatMap of three genes
+
+```{r}
+library(pheatmap)
+TPM.Z <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Mccormick/Zscore.TPM.csv", header = T, row.names = 1) %>% t() %>% data.frame()
+
+ro_1 <- c("s_as","s_cff","s_ns", "s_us", "s_cw", "ll_j", "llg_a", "llg_fi", "llg_gm", "llw_v",
+          "lmw_v", "lu_j", "lug_a", "lug_fi", "luw_v", "pl_a", "lsg_a", "lsg_gm")
+
+Z.PPDK <- TPM.Z [, ro_1]
+pheatmap(Z.PPDK,
+         color = inferno(30),
+               clustering_distance_r = "correlation", 
+               annotation_colors = annotation_colors,
+                cutree_rows = 1, cutree_cols = 5,
+               show_colnames =T,show_rownames = F,cluster_rows = F, cluster_cols = F,
+               fontsize_row = 4, fontsize_col = 4, angle_col = 90, border_color = NA)
+```
+
+# Figure.7-DUS2-phenotypes
+
+```{r}
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- rename(data_sum, c("mean" = varname))
+ return(data_sum)
+}
+
+```
+
+## Figure 7B Germination rate
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+DUS.germination <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/01_Phenotype/DUS2-germination.csv", header = T)
+
+df2 <- data_summary(DUS.germination, varname="Germination", 
+                    groupnames=c("Time", "Genotype"))
+# Convert dose to a factor variable
+df2$Time=factor(df2$Time, levels = DUS.germination$Time %>% unique())
+head(df2)
+
+
+ggplot(df2, aes(x=Time, y=Germination, group=Genotype, color=Genotype)) + 
+  geom_line() +
+  geom_point()+
+  geom_errorbar(aes(ymin=Germination-sd*0.25, ymax=Germination+sd*0.25), width=.2,
+                 position=position_dodge(0.05)) +
+ labs(x="Time for germination (hour)", y = "Germination rate (%)")+
+   theme_classic() +
+   scale_color_manual(values=c('#999999','#E69F00'))
+
+```
+
+## Figure 7C Survial rate
+### Plot survival rate
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+Survival <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/01_Phenotype/Survival_rate.csv", header = T)
+Survival$Time <- factor(Survival$Time, levels = c("1", "2", "3", "4", "5", "6",
+                                                  "7", "8", "9", "10", "11", "12"))
+ggplot(Survival, aes(x=Time, y=rate, group=Genotype, color=Genotype)) + 
+  geom_line() +
+  geom_point() +
+ labs(x="Time for heat treatment (Days)", y = "Survival rate (%)")+
+   theme_classic() +
+   scale_color_manual(values=c("Col-0" = '#999999',dus2 = '#E69F00')) +
+       theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+```
+
+## Figure 7D Licor-data comparison
+### Plot Licor-6800 data
+```{r}
+Licor <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/05_Licor/DUS2-Licor-data.csv", header = T)
+Licor
+
+A_Licor <- ggplot(Licor, aes(x = Genotype, y = A, color = Genotype)) +
+            geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+            theme_classic() +
+            facet_wrap(~ Condition) +
+            scale_color_manual(values = c("Col-0" = '#999999',DUS2 = '#E69F00')) +
+            stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE)  + xlab("Conidtions") + ylab("CO2 net assimilation") +
+            geom_jitter() +   stat_compare_means(method = "t.test") +
+            theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+gsw_Licor <- ggplot(Licor, aes(x = Genotype, y = gsw, color = Genotype)) +
+              geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+              theme_classic() +
+              facet_wrap(~ Condition) +
+              scale_color_manual(values = c("Col-0" = '#999999',DUS2 = '#E69F00')) +
+              stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                         geom = "point", shape = 4, size = 1,
+                         show.legend = FALSE)  + xlab("Conidtions") + ylab("Stomata conductence") +
+              geom_jitter() +   stat_compare_means(method = "t.test") +
+              theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+plot_grid(A_Licor, gsw_Licor)
+```
+
+## Figure 7E Buds initiation rate
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+DUS.initiation <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/01_Phenotype/Buds-initiation.csv", header = T)
+
+df2 <- data_summary(DUS.initiation, varname="Rate", 
+                    groupnames=c("Date", "Genotype"))
+# Convert dose to a factor variable
+df2$Date=factor(df2$Date, levels = DUS.initiation$Date %>% unique())
+head(df2)
+
+ggplot(df2, aes(x=Date, y=Rate, group=Genotype, color=Genotype)) + 
+  geom_line() +
+  geom_point()+
+  geom_errorbar(aes(ymin=Rate-sd*0.25, ymax=Rate+sd*0.25), width=.2,
+                 position=position_dodge(0.01)) +
+ labs(x="Days after true leaf emergence (Days)", y = "Buds initiation rate (%)")+
+   theme_classic() +
+   scale_color_manual(values=c('#999999','#E69F00'))
+```
+
+## Figure 7F D-modified frequency
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+dus2.counts.freq <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/10_Modtect/Modtect_dus2-D-frequency.csv", header = T)
+dus2.counts.freq
+
+ggplot(dus2.counts.freq, aes(x = Genotype, y = Mods.freq, color = Genotype)) +
+            geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+            theme_classic() +
+            facet_wrap(~ Condition) +
+            scale_color_manual(values = c("Col-0" = '#999999',DUS2 = '#E69F00')) +
+            stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE)  + xlab("Conidtions") + ylab("Modification frequency (D sites)") +
+            geom_jitter() +   stat_compare_means(method = "t.test") +
+            theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+```
+
+```{r}
+rm(Zscore_vsd)
+rm(MF.transcripts.order)
+rm(MF.transcripts.order.melt)
+```
+
