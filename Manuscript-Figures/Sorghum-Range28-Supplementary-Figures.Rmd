@@ -1,0 +1,635 @@
+---
+title: "Sorghum-Range28-Supplementary-Figures"
+author: "Li'ang Yu, Andrew Nelson"
+date: "2025-01-03"
+output:
+  html_document:
+    df_print: paged  
+    toc: true
+    theme: united
+---
+
+# Load packages
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(ggplot2)
+library(dplyr)
+library(colourvalues)
+library(pheatmap)
+library(knitr)
+library(RColorBrewer)
+library(corrplot)
+library(PoiClaClu)
+library(stats)
+library(reshape2)
+library(ggpubr)
+library(tidyr)
+library(cowplot)
+library(viridis)
+library(Hmisc)
+library(stringr)
+```
+
+# Functions been created in the analysis
+```{r}
+scale_rows = function(x){
+    m = apply(x, 1, mean, na.rm = T)
+    s = apply(x, 1, sd, na.rm = T)
+    return((x - m) / s)
+}
+```
+
+
+# Figure.S1-SV-distribution
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+library(ggplot2)
+Genotype.SV <- read.csv("/Users/leon/Documents/Project/Sorghum/10_Variants/Combine.stats.csv", header = T)
+Genotype.SV$Region <- as.factor(Genotype.SV$Region)
+
+SV1 <- ggplot(Genotype.SV, aes(x="", y=Count, fill=Region)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+   scale_fill_manual(values = c(Downstream="#FAECA8", Intergenic="#CAC0E1", 
+                                Intron="grey", Splicing="#1E803D", Upstream="#FFD47F")) + theme_void()
+SV1 
+
+SV2 <-  ggplot(Genotype.SV[Genotype.SV$Region == "Upstream",], aes(x="", y=Count, fill=Genotype)) +
+  geom_bar(stat="identity", width=1,alpha = 0.8) +
+  coord_polar("y", start=0) +
+   scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF", "Overlap" = "#FAECA8")) + theme_void()
+
+
+SV3 <-  ggplot(Genotype.SV[Genotype.SV$Region == "Intron",], aes(x="", y=Count, fill=Genotype)) +
+  geom_bar(stat="identity", width=1 , alpha = 0.8) +
+  coord_polar("y", start=0) +
+   scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF", "Overlap" = "#FAECA8")) + theme_void()
+
+SV4 <-  ggplot(Genotype.SV[Genotype.SV$Region == "Downstream",], aes(x="", y=Count, fill=Genotype)) +
+  geom_bar(stat="identity", width=1, , alpha = 0.8) +
+  coord_polar("y", start=0) +
+   scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF", "Overlap" = "#FAECA8")) + theme_void()
+
+SV5 <-  ggplot(Genotype.SV[Genotype.SV$Region == "Splicing",], aes(x="", y=Count, fill=Genotype)) +
+  geom_bar(stat="identity", width=1, alpha = 0.8) +
+  coord_polar("y", start=0) +
+   scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF", "Overlap" = "#FAECA8")) + theme_void()
+
+library(cowplot)
+plot_grid(SV2, SV3, SV4, SV5)
+```
+# Figure.S2-Metabolites-Microbiome
+
+## Figure S2A and S2B
+### Plot selective metabolites data in boxplots
+```{r fig.height=6, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+### Under drought
+M1 <-  ggplot(Met_field[Met_field$Condition == "WL",], 
+              aes(x = Time, y = Sucrose, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Drought condition") +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+ M2 <- ggplot(Met_field[Met_field$Condition == "WW",], 
+              aes(x = Time, y = Sucrose, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Control condition") +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+ M3 <- ggplot(Met_field[Met_field$Condition == "WL",], 
+              aes(x = Time, y = chlorogenic.acid.2.1, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Drought condition") +
+         theme(axis.text.y=element_text(angle=90), legend.position = "none")
+ 
+
+ M4 <- ggplot(Met_field[Met_field$Condition == "WW",], 
+              aes(x = Time, y = chlorogenic.acid.2.1, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE)  + xlab("Control condition") +
+         theme(axis.text.y=element_text(angle=90), legend.position = "none")
+ 
+plot_grid(M1, M2, M3, M4)
+```
+
+## Figure S2C
+
+### Process Bacteria data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+Bac.meta <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/19_Microbiome/Bacteria/2020_16S_Roots_metadata_table.csv", header = T)
+Bac <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/19_Microbiome/Bacteria/2020_16S_Roots_otu_table.csv", header = T)
+
+Bac.sample <- Bac.meta$Index %>% unique()
+
+
+Bac.ave <- data.frame(matrix(ncol = 12, nrow = 515))
+vector <- Bac.meta$Index %>% unique()
+colnames(Bac.ave) <- Bac.sample 
+rownames(Bac.ave) <- Bac$OTSU
+
+
+for (i in 1:length(vector)){
+  Bac.ave[,grepl(vector[i],colnames(Bac.ave))] <- rowMeans(Bac[,grepl(vector[i],colnames(Bac))])
+}
+
+head(Bac.ave)
+
+```
+
+### Plot culstering of Bacteria data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+datTrait_PCA <- scale_rows(Bac.ave)
+datTrait_results <- prcomp(datTrait_PCA, scale = TRUE)
+datTrait_results$rotation <- -1*datTrait_results$rotation
+datTrait_results$sdev^2 / sum(datTrait_results$sdev^2)
+datTrait_result <- data.frame(datTrait_results$rotation)
+datTrait_result
+
+sdev <- datTrait_results$sdev
+variance_explained <- sdev^2
+# Calculate the explained variance ratio
+explained_variance_ratio <- variance_explained / sum(variance_explained)
+
+explained_variance_ratio[1] * 100
+explained_variance_ratio[2] * 100
+explained_variance_ratio[3] * 100
+
+datTrait_result$Sample <- rownames(datTrait_result)
+datTrait_result <- separate(datTrait_result, Sample, c("Genotype", "Condition"))
+
+### GHenotype effects
+datTrait_result$Condition <- factor(datTrait_result$Condition, levels = c("WW", "WL"))
+
+ggplot(datTrait_result, aes(x = PC1, y = PC2, color = factor(Genotype), shape = factor(Condition))) + 
+  geom_point(size = 3,aes(color=factor(Genotype), shape = factor(Condition))) + 
+  scale_color_manual(values=c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) + 
+  xlab(paste0("PC1 17.76%")) + 
+  ylab(paste0("PC2 10.86%")) + 
+  theme_classic() +
+   theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+```
+
+### PCA loading of bacteria data
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+sample_pca <- prcomp(t(scale_rows(Bac.ave)))
+pc_loadings <- sample_pca$rotation
+
+pc_loadings <- pc_loadings %>% 
+  as_tibble(rownames = "Bacteria")
+
+# print the result
+pc_loadings
+
+top_Bacteria <- pc_loadings %>% 
+  # select only the PCs we are interested in
+  select(Bacteria, PC1, PC2) %>%
+  # convert to a "long" format
+  pivot_longer(matches("PC"), names_to = "PC", values_to = "loading") %>% 
+  # for each PC
+  group_by(PC) %>% 
+  # arrange by descending order of loading
+  arrange(desc(abs(loading))) %>% 
+  # take the 5 top rows
+  slice(1:5) %>% 
+  # pull the gene column as a vector
+  pull(Bacteria) %>% 
+  # ensure only unique genes are retained
+  unique()
+
+top_Bacteria
+```
+
+# Figure.S3-Upset-plot-condition
+## Figure S3A and S3B
+### Build unique list of all samples and unique DEGs
+
+```{r paged.print=TRUE}
+### Generate the non-duplicated DEGs list
+Down_list <- unique(data.frame(GeneID = donw_gene[,"GeneID"]))
+Up_list <- unique(data.frame(GeneID = up_gene[,"GeneID"]))
+head(Down_list,20)
+head(Up_list,20)
+
+### Check sample list
+sample_list <- unique(data.frame(Sample = Combine[,"Sample"]))
+sample_list
+```
+### Build dataframe for down regulated genes
+```{r paged.print=TRUE}
+####for down-regulated DEGs
+for (i in 1:nrow(sample_list)){
+  df <- left_join(Down_list,donw_gene[donw_gene$Sample == sample_list[i,1],c("GeneID","log2FoldChange")],by = "GeneID")
+  df <- as.data.frame(df[,2])
+  colnames(df) <- sample_list[i,1]
+  assign(paste0("DEGs_down_",sample_list[i,1]),df)
+}
+#Combined all dfs
+merge_list1 <- lapply(ls(pattern = "DEGs_down_"), get)
+down_combine <- bind_cols(Down_list ,merge_list1)
+
+#Replace NA into 0
+down_combine[is.na(down_combine)] <- 0
+down_combine_upset <- down_combine
+
+#Replace all values not equal with 1
+for (i in 2:ncol(down_combine)){
+down_combine_upset[,i] <-  replace(x = down_combine_upset[,i], 
+                   down_combine_upset[,i] != 0.000000	, 
+                   values =  1)
+}
+
+### Check the logFC in a combined table
+head(down_combine, 40)
+write.csv(down_combine,"/Users/Leon/OneDrive - Cornell University/Projects/9_Sorghum/4_DEGs/Down.csv")
+
+head(down_combine_upset, 40)
+write.csv(down_combine,"~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/Down.csv")
+
+```
+
+### Plot down regulated genes in upset plot
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+###Plot by accessions
+upset(down_combine_upset[,c("GeneID","A_TP1","B_TP1","C_TP1","D_TP1","E_TP1","F_TP1")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP1","B_TP1","C_TP1","D_TP1","E_TP1","F_TP1"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+
+upset(down_combine_upset[,c("A_TP3","B_TP3","C_TP3","D_TP3","E_TP3","F_TP3")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP3","B_TP3","C_TP3","D_TP3","E_TP3","F_TP3"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+upset(down_combine_upset[,c("A_TP5","B_TP5","C_TP5","D_TP5","E_TP5","F_TP5")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP5","B_TP5","C_TP5","D_TP5","E_TP5","F_TP5"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+upset(down_combine_upset[,c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+```
+### Build dataframe for up-regulated genes
+```{r}
+####for down-regulated DEGs
+for (i in 1:nrow(sample_list)){
+  df <- left_join(Up_list,up_gene[up_gene$Sample == sample_list[i,1],c("GeneID","log2FoldChange")],by = "GeneID")
+  df <- as.data.frame(df[,2])
+  colnames(df) <- sample_list[i,1]
+  assign(paste0("DEGs_up_",sample_list[i,1]),df)
+}
+#Combined all dfs
+merge_list2 <- lapply(ls(pattern = "DEGs_up_"), get)
+Up_combine <- bind_cols(Up_list ,merge_list2)
+
+#Replace NA into 0
+Up_combine[is.na(Up_combine)] <- 0
+Up_combine_upset <- Up_combine
+
+#Replace all values not equal with 1
+for (i in 2:ncol(Up_combine)){
+Up_combine_upset[,i] <-  replace(x = Up_combine_upset[,i], 
+                   Up_combine_upset[,i] != 0.000000	, 
+                   values =  1)
+}
+
+head(Up_combine, 40)
+#write.csv(down_combine,"/Users/Leon/OneDrive - Cornell University/Projects/9_Sorghum/4_DEGs/Down.csv")
+
+head(Up_combine_upset, 40)
+#write.csv(Up_combine,"~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/Up.csv")
+```
+### Plot up-regulated genes
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+###Plot by accessions
+upset(Up_combine_upset[,c("GeneID","A_TP1","B_TP1","C_TP1","D_TP1","E_TP1","F_TP1")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP1","B_TP1","C_TP1","D_TP1","E_TP1","F_TP1"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+
+upset(Up_combine_upset[,c("A_TP3","B_TP3","C_TP3","D_TP3","E_TP3","F_TP3")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP3","B_TP3","C_TP3","D_TP3","E_TP3","F_TP3"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+upset(Up_combine_upset[,c("A_TP5","B_TP5","C_TP5","D_TP5","E_TP5","F_TP5")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP5","B_TP5","C_TP5","D_TP5","E_TP5","F_TP5"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+
+upset(Up_combine_upset[,c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7")], 
+      nintersects = 200,
+      nsets = 4, 
+      order.by = c("freq", "degree"), 
+      decreasing = c(FALSE,TRUE),
+      sets = c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7"),
+      keep.order = T,
+      mb.ratio = c(0.5, 0.5),
+      number.angles = 0, 
+      text.scale = 2, 
+      point.size = 4, 
+      line.size = 1,
+      matrix.color = "steelblue",
+      sets.bar.color = "tomato"
+)
+```
+# Figure.S4-Mods-stats
+# Figure.S5-RCM-effects.estimation
+# Figure.S6-Global-RCM
+
+# Figure.S7-RCM-features
+## Load data
+```{r message=FALSE, warning=FALSE}
+
+RMF_stats <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMF_stats.csv", header = T)
+head(RMF_stats)
+RMF_stats$Condition<- factor(RMF_stats$Condition, levels = c("WW", "WL"))
+```
+## Figure S7A
+```{r}
+ ggplot(RMF_stats[RMF_stats$Time == c("TP5", "TP7"),], 
+        aes(x = Genotype, y = Counts, alpha = Genotype, fill = Genotype, size = Genotype)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+      scale_alpha_manual(values = c(1,0.5,0.5,0.5,0.5,0.5)) +
+      scale_size_manual(values = c(0.5,0.1,0.1,0.1,0.1,0.1)) +
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+     stat_compare_means(comparisons = my_comparisons, method = "wilcox.test") +
+      ylab("Numbers of modified sites")
+
+```
+## Figure S7B
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+S5BA <- ggplot(RMF_stats[RMF_stats$Genotype == "A", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+       xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+S5BB <- ggplot(RMF_stats[RMF_stats$Genotype == "B", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+      xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+S5BC <- ggplot(RMF_stats[RMF_stats$Genotype == "C", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+       xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+S5BD <- ggplot(RMF_stats[RMF_stats$Genotype == "D", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+       xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+S5BE <- ggplot(RMF_stats[RMF_stats$Genotype == "E", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+       xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+S5BF <- ggplot(RMF_stats[RMF_stats$Genotype == "F", ], aes(x = Condition, y = Counts, fill = Condition)) +
+      geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+      theme_classic() +
+      geom_jitter() +
+      scale_fill_manual(values=c(WL = "#674B95", WW="#DCDD3B")) + 
+      stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("") +
+       xlab("") +
+      stat_compare_means(method = "t.test") + ylim(1000,2000) +
+      theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+plot_grid(S5BA, S5BB, S5BC,
+          S5BD, S5BE, S5BF)
+      
+```
+
+# Figure.S8-AtDUS2-mutant-features
+## Figure S8A
+```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+Atdus2.correlation <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/08_FeatureCounts/At-dus2-TPM.hisat2-correlation.csv", header = T, row.names = 1)
+
+Atdus2.correlation 
+
+
+plot_3 <- ggscatter(Atdus2.correlation, x = "AT3G49640", 
+          y = "AT5G21430", color = "black",
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    xlab = "Relative transcript abundance of AtDUS2 (TPM)", 
+    ylab = "Relative transcript abundance of AtCRRL (TPM)",
+    add.params = list(color = "grey50", fill = "lightgray"))
+
+
+plot_4 <- ggscatter(Atdus2.correlation, x = "AT3G49640", 
+          y = "AT4G15530", color ="black",
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    xlab = "Relative transcript abundance of AtDUS2 (TPM)", 
+    ylab = "Relative transcript abundance of AtPPDK (TPM)",
+    add.params = list(color = "grey50", fill = "lightgray"))
+
+plot_grid(plot_3, plot_4)
+```
+
+## Figure S8B
+### Plot normalized counts of AtDUS2
+```{r}
+dus2.counts <- read.csv("/Users/leon/Desktop/Sorghum-dus2-counts.csv", header = T)
+dus2.counts
+
+
+ggplot(dus2.counts, aes(x = Type, y = Count, color = Type)) +
+            geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+            theme_classic() +
+            facet_wrap(~ Condition) +
+            scale_color_manual(values = c("Col-0" = '#999999',DUS2 = '#E69F00')) +
+            stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE)  + xlab("Conidtions") + ylab("Normalized read counts") +
+            geom_jitter() +   stat_compare_means(method = "t.test") +
+            theme(axis.text.y=element_text(angle=90), legend.position = "none")
+
+
+```
+
+
+### Plot modified sites of AtDUS2 background
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+
+dus2.counts.sites <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/10_Modtect/Modtect_dus2-D-sites.csv", header = T)
+dus2.counts.sites
+
+ggplot(dus2.counts.sites, aes(x = Genotype, y =Count, color = Genotype)) +
+            geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
+            theme_classic() +
+            facet_wrap(~ Condition) +
+            scale_color_manual(values = c("Col-0" = '#999999',DUS2 = '#E69F00')) +
+            stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE)  + xlab("Conidtions") + ylab("Number of modified sites (D sites)") +
+            geom_jitter() +   stat_compare_means(method = "t.test") +
+            theme(axis.text.y=element_text(angle=90), legend.position = "none")
+```
+
