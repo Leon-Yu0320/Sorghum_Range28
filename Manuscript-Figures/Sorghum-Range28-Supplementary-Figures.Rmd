@@ -1,6 +1,6 @@
 ---
 title: "Sorghum-Range28-Supplementary-Figures"
-author: "Li'ang Yu, Andrew Nelson"
+author: "Li'ang Yu, Andrew Nelson Duke Pauli"
 date: "2025-01-03"
 output:
   html_document:
@@ -27,6 +27,7 @@ library(cowplot)
 library(viridis)
 library(Hmisc)
 library(stringr)
+library(UpSetR)
 ```
 
 # Functions been created in the analysis
@@ -81,10 +82,12 @@ library(cowplot)
 plot_grid(SV2, SV3, SV4, SV5)
 ```
 # Figure.S2-Metabolites-Microbiome
-
 ## Figure S2A and S2B
 ### Plot selective metabolites data in boxplots
-```{r fig.height=6, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+```{r, message=FALSE, warning=FALSE, paged.print=TRUE}
+
+Met_field <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/5_Phenotype/2_Clean_data/Metabolites-2024-all.csv",  header = T, row.names = 1)
+
 ### Under drought
 M1 <-  ggplot(Met_field[Met_field$Condition == "WL",], 
               aes(x = Time, y = Sucrose, alpha = Genotype, fill = Genotype, size = Genotype)) +
@@ -236,6 +239,35 @@ top_Bacteria
 ## Figure S3A and S3B
 ### Build unique list of all samples and unique DEGs
 
+```{r}
+
+A_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_A.csv", header =T)
+B_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_B.csv", header =T)
+C_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_C.csv", header =T)
+D_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_D.csv", header =T)
+E_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_E.csv", header =T)
+F_Group <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/DEGs_F.csv", header =T)
+
+
+Combine <- na.omit(rbind(A_Group,B_Group,C_Group,D_Group,E_Group,F_Group))
+names(Combine)[8] = "GeneID"
+head(Combine, 6)
+
+### Filter differentially expressed genes based on following creteria
+donw_gene <- Combine[Combine$padj < 0.05 & Combine$log2FoldChange < -1,]
+donw_gene <- donw_gene %>% dplyr::group_by(Sample) %>% dplyr::mutate(Down = n())
+donw_summary <- unique(donw_gene[,c("Sample","Down")])
+
+up_gene <- Combine[Combine$padj < 0.05 & Combine$log2FoldChange > 1,]
+up_gene <- up_gene %>% dplyr::group_by(Sample) %>% dplyr::mutate(up = n())
+up_summary <- unique(up_gene[,c("Sample","up")])
+
+combind_summary <- left_join(up_summary, donw_summary, by = "Sample")
+head(combind_summary, 6) 
+
+```
+
+
 ```{r paged.print=TRUE}
 ### Generate the non-duplicated DEGs list
 Down_list <- unique(data.frame(GeneID = donw_gene[,"GeneID"]))
@@ -272,12 +304,11 @@ down_combine_upset[,i] <-  replace(x = down_combine_upset[,i],
 }
 
 ### Check the logFC in a combined table
-head(down_combine, 40)
-write.csv(down_combine,"/Users/Leon/OneDrive - Cornell University/Projects/9_Sorghum/4_DEGs/Down.csv")
+head(down_combine, 6)
+#write.csv(down_combine,"/Users/Leon/OneDrive - Cornell University/Projects/9_Sorghum/4_DEGs/Down.csv")
 
-head(down_combine_upset, 40)
-write.csv(down_combine,"~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/Down.csv")
-
+head(down_combine_upset, 6)
+#write.csv(down_combine,"~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/Down.csv")
 ```
 
 ### Plot down regulated genes in upset plot
@@ -349,7 +380,7 @@ upset(down_combine_upset[,c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7")],
 )
 ```
 ### Build dataframe for up-regulated genes
-```{r}
+```{r paged.print=TRUE}
 ####for down-regulated DEGs
 for (i in 1:nrow(sample_list)){
   df <- left_join(Up_list,up_gene[up_gene$Sample == sample_list[i,1],c("GeneID","log2FoldChange")],by = "GeneID")
@@ -372,10 +403,10 @@ Up_combine_upset[,i] <-  replace(x = Up_combine_upset[,i],
                    values =  1)
 }
 
-head(Up_combine, 40)
+head(Up_combine, 5)
 #write.csv(down_combine,"/Users/Leon/OneDrive - Cornell University/Projects/9_Sorghum/4_DEGs/Down.csv")
 
-head(Up_combine_upset, 40)
+head(Up_combine_upset, 5)
 #write.csv(Up_combine,"~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/4_DEGs/Up.csv")
 ```
 ### Plot up-regulated genes
@@ -448,19 +479,228 @@ upset(Up_combine_upset[,c("A_TP7","B_TP7","C_TP7","D_TP7","E_TP7","F_TP7")],
 )
 ```
 # Figure.S4-Mods-stats
+## Figure S4C Modification correlation
+```{r}
+library(ggpubr)
+
+MF <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RML.csv", header = T)
+head(MF)
+Sorghum_TPM <- read.csv("/Users/leon/Documents/Project/Sorghum/4_FeatureCounts/Sorghum_20240629_clean_TPM_update96_ave.csv", header = T)
+
+colnames(Sorghum_TPM)[1] <- "Transcripts"
+head(Sorghum_TPM)
+
+```
+
+```{r}
+Sorghum_TPM_melt <- melt(Sorghum_TPM, id.vars = c("Transcripts"))
+colnames(Sorghum_TPM_melt) <- c("Transcripts", "Sample", "TPM")
+MF_melt <- melt(MF, id.vars = c("Transcripts"))
+colnames(MF_melt) <- c("Transcripts", "Sample", "MF")
+
+
+MF.TPM <- inner_join(Sorghum_TPM_melt,MF_melt, by = c("Transcripts", "Sample"))
+MF.TPM  <- separate(MF.TPM, Sample, c("Accession", "Condition", "Time"))
+head(MF.TPM)
+
+MF.TPM$log2TPM <- log2(MF.TPM$TPM)
+MF.TPM$log2MF <- log2(MF.TPM$MF)
+MF.TPM %>%
+      ggplot(aes(x=log2MF, y=log2TPM, color=Accession))+
+      geom_point(size = 1, alpha = 0.5)+ 
+      scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                       C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF"))+
+      theme_classic()+ 
+      stat_smooth(aes(color= Accession), size = 0.5, level = 0.95) +
+      stat_cor() + 
+      xlab("log2(length normalized modification frequency)") +
+      ylab("log2(TPM)")
+
+```
+
 # Figure.S5-RCM-effects.estimation
+## Figure S5A
+```{r message=TRUE, warning=FALSE, paged.print=TRUE}
+RCM1 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/D-PAM.csv", header = T)
+RCM2 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Y-PAM.csv", header = T)
+RCM3 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/i6A-PAM.csv", header = T)
+RCM4 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/m1G-PAM.csv", header = T)
+RCM5 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/m3C-PAM.csv", header = T)
+RCM6 <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/m1A-PAM.csv", header = T)
+Consensus.ID <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/Consensus-ID.csv", header = T)
+
+RCM1 <- left_join(Consensus.ID, RCM1, by = "Transcripts")
+RCM2 <- left_join(Consensus.ID, RCM2, by = "Transcripts")
+RCM3 <- left_join(Consensus.ID, RCM3, by = "Transcripts")
+RCM4 <- left_join(Consensus.ID, RCM4, by = "Transcripts")
+RCM5 <- left_join(Consensus.ID, RCM5, by = "Transcripts")
+RCM6 <- left_join(Consensus.ID, RCM6, by = "Transcripts")
+```
+
+### Combine modification together
+```{r paged.print=TRUE}
+RCM_combine <- bind_cols(RCM1, RCM2[,2:49], RCM3[,2:49], RCM4[,2:49], RCM5[,2:49], RCM6[,2:49])
+RCM_combine[is.na(RCM_combine)] <- 0
+head(RCM_combine, 5)
+
+RCM_combine.PAM <- RCM_combine[2:289]
+results <- prcomp(RCM_combine.PAM , scale = TRUE)
+results$rotation <- -1*results$rotation
+results$sdev^2 / sum(results$sdev^2)
+MF.PCA_result <- data.frame(results$rotation)
+MF.PCA_result$Sample <- rownames(MF.PCA_result)
+MF.PCA_result <- separate(MF.PCA_result, Sample, c("RCM", "Genotype", "Condition", "Time"))
+
+### Calcualte the contribution rate
+sdev <- results$sdev
+variance_explained <- sdev^2
+# Calculate the explained variance ratio
+explained_variance_ratio <- variance_explained / sum(variance_explained)
+
+explained_variance_ratio[1] * 100
+explained_variance_ratio[2] * 100
+explained_variance_ratio[3] * 100
+```
+
+### Plot PCA using different factors
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+MF.PCA_result$Condition <- factor(MF.PCA_result$Condition , levels = c("WW", "WL"))
+MF.PCA_result$Sample <- rownames(MF.PCA_result)
+
+### Plot the PCA
+ggplot(MF.PCA_result, aes(x = PC1, y = PC2, color = factor(RCM))) + 
+  geom_point(size = 3,aes(color=factor(RCM), shape = factor(Condition))) + 
+  scale_color_manual(values = c("m1A" = "#c0db82", "m3C" = "#54beaa", "D" = "#eb8e47", 
+                                   "m1G" = "#29a15c", "i6A" = "grey10", "Y"= "grey")) + 
+  xlab(paste0("PC1 (30.78%)")) + 
+  ylab(paste0("PC2 (8.38%)")) + 
+  theme_classic() +
+  # geom_text(aes(label = Sample), vjust = -1, hjust = 0.5) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+MF.PCA_result$Genotype %>% unique()
+
+ggplot(MF.PCA_result, aes(x = PC1, y = PC2, color = Genotype)) + 
+  geom_point(size = 3,aes(color=factor(Genotype), shape = factor(Condition))) + 
+ scale_color_manual(values=c(A="#E81B25", B="#76b5c5", C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) + 
+  xlab(paste0("PC1 (59.91%)")) + 
+  ylab(paste0("PC2 (2.54%)")) + 
+  theme_classic() +
+  # geom_text(aes(label = Sample), vjust = -1, hjust = 0.5) +
+  theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+```
+
 # Figure.S6-Global-RCM
+## Figure S6A PCA of modification
+```{r}
+MF <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/MF.csv", header = T, row.names = 1)
+RMA.dcast <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMA_dcast.csv", header = T, row.names = 1)
+PAM <- MF
+PAM[PAM != 0] <- 1
+
+results <- prcomp(RMA.dcast , scale = TRUE)
+results$rotation <- -1*results$rotation
+results$sdev^2 / sum(results$sdev^2)
+MF.PCA_result <- data.frame(results$rotation)
+MF.PCA_result$Sample <- rownames(MF.PCA_result)
+MF.PCA_result <- separate(MF.PCA_result, Sample, c("Genotype", "Condition", "Time", "Rep"))
+
+### Calcualte the contribution rate
+sdev <- results$sdev
+variance_explained <- sdev^2
+# Calculate the explained variance ratio
+explained_variance_ratio <- variance_explained / sum(variance_explained)
+
+explained_variance_ratio[1] * 100
+explained_variance_ratio[2] * 100
+explained_variance_ratio[3] * 100
+```
+
+
+```{r}
+
+MF.PCA_result$Condition <- factor(MF.PCA_result$Condition , levels = c("WW", "WL"))
+
+### Plot the PCA
+ggplot(MF.PCA_result, aes(x = PC1, y = PC2, color = factor(Genotype))) + 
+  geom_point(size = 3,aes(color=factor(Genotype), shape = factor(Condition))) + 
+  scale_color_manual(values=c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) + 
+  xlab(paste0("PC1 (51.59%)")) + 
+  ylab(paste0("PC2 (3.22%)")) + 
+  theme_classic() +
+  theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "bottom")
+
+```
+## Figure S6B Global RCM mean density and frequency
+
+```{r message=FALSE, warning=FALSE, paged.print=TRUE}
+RMA.TPM <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMA_cleaned.csv", header = T)
+
+RMA.TPM_select <- RMA.TPM[,c("Accession", "Time","Condition","mean_RMA")]
+head(RMA.TPM_select)
+
+RMA.TPM.plot <- RMA.TPM_select  %>% 
+                dplyr::group_by(Accession, Time, Condition) %>% summarise(mean_RMA.all = mean(mean_RMA))
+RMA.TPM.plot$Index <- paste0(RMA.TPM.plot$Accession, "_", RMA.TPM.plot$Condition)
+RMA.TPM_select[,1] %>% unique() %>% length()
+
+ggplot(RMA.TPM.plot,
+       aes(x = Time,y = mean_RMA.all, color = Accession, group = Index)) +
+       geom_point(size = 3, aes(shape = Condition)) +
+       geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Condition)) +
+             theme_classic() +
+             facet_wrap( ~ Condition) +
+             scale_alpha_manual(values = c(WL=1, WW=1)) +
+             scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+                    theme(axis.text.y = element_text(angle = 90, hjust = 0.5))
+```
+
+
+```{r}
+MF <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/MF.csv", header = T, row.names = 1)
+MF_Z <- scale_rows(MF)
+MF_Z$Transcripts <- rownames(MF_Z)
+MF.Z.melt <- melt(MF_Z, id.vars = c("Transcripts"))
+MF.Z.melt <- separate(MF.Z.melt, variable, c("Genotype", "Condition", "Time"))
+
+MF.Z.plot <- MF.Z.melt  %>% 
+                group_by(Genotype, Time, Condition) %>% summarise(mean_density = mean(value))
+MF.Z.plot$Index <- paste0(MF.Z.plot$Genotype, "_",MF.Z.plot$Condition)
+MF.Z.plot$Condition <- factor(MF.Z.plot$Condition, levels = c("WW", "WL"))
+head(MF.Z.plot)
+
+
+ggplot(MF.Z.plot ,
+       aes(x = Time,y = mean_density, color = Genotype, group = Index)) +
+       geom_point(size = 3, aes(shape = Condition)) +
+       geom_line(size = 0.5, aes(group = Index, lty= Condition, alpha = Condition)) +
+             theme_classic() +
+             facet_wrap( ~ Condition) +
+             scale_alpha_manual(values = c(WL=1, WW=1)) +
+             scale_color_manual(values = c(A="#E81B25", B="#76b5c5", 
+                                   C="grey40", D="#eab676", E="#eeeee4", F="#E6CECF")) +
+                    theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+```
+
+
 
 # Figure.S7-RCM-features
-## Load data
-```{r message=FALSE, warning=FALSE}
 
+```{r message=FALSE, warning=FALSE}
 RMF_stats <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMF_stats.csv", header = T)
 head(RMF_stats)
 RMF_stats$Condition<- factor(RMF_stats$Condition, levels = c("WW", "WL"))
 ```
-## Figure S7A
+## Figure S7A Number of modified transcripts
 ```{r}
+
+RMF_stats <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMF_stats.csv", header = T)
+RMF_stats
+
+my_comparisons <- list( c("A", "B"), c("A", "C"), c("A", "D"),c("A", "E"), c("A", "F"))
+
  ggplot(RMF_stats[RMF_stats$Time == c("TP5", "TP7"),], 
         aes(x = Genotype, y = Counts, alpha = Genotype, fill = Genotype, size = Genotype)) +
       geom_boxplot(outlier.size = 0.3, outlier.shape = 21) +
@@ -476,8 +716,8 @@ RMF_stats$Condition<- factor(RMF_stats$Condition, levels = c("WW", "WL"))
      stat_compare_means(comparisons = my_comparisons, method = "wilcox.test") +
       ylab("Numbers of modified sites")
 
-```
-## Figure S7B
+``` 
+## Figure S7B Number of modified transcrips by conditions
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE}
 
 S5BA <- ggplot(RMF_stats[RMF_stats$Genotype == "A", ], aes(x = Condition, y = Counts, fill = Condition)) +
@@ -564,13 +804,271 @@ plot_grid(S5BA, S5BB, S5BC,
           S5BD, S5BE, S5BF)
       
 ```
+## Figure S7C Modification density
+```{r}
+S7BA <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "A",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7BB <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "B",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+
+S7BC <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "C",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7BD <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "D",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7BE <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "E",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7BF <- ggplot(MF.Z.melt[MF.Z.melt$Genotype == "F",], 
+       (aes(x=Condition, y=value, fill = Condition))) +
+        geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+        theme_classic() +
+        ylab("Modification density")+
+        scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+        stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                       geom = "point", shape = 4, size = 1,
+                       show.legend = FALSE) +
+        ylim(-4,4) + xlab("") + ylab("") +
+        stat_compare_means(method = "t.test") +
+        theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+
+plot_grid(S7BA, S7BB, S7BC, S7BD, S7BE, S7BF)
+ 
+
+```
+
+
+## Figure S7D Modification frequency
+```{r}
+RMA.TPM <- read.csv("/Users/leon/Documents/Project/Sorghum/7_PTM-Pattern/RMA_cleaned.csv", header = T)
+RMA.TPM$Condition <- factor(RMA.TPM$Condition , levels = c("WW", "WL"))
+head(RMA.TPM)
+
+
+S7DA <- ggplot(RMA.TPM[RMA.TPM$Accession == "A",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+  geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+  theme_classic() +
+  ylab("Mean modification abundance")+
+  scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+  stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7DB <- ggplot(RMA.TPM[RMA.TPM$Accession == "B",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+    geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+    theme_classic() +
+    ylab("Mean modification abundance")+
+    scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+    stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7DC <- ggplot(RMA.TPM[RMA.TPM$Accession == "C",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+    geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+    theme_classic() +
+    ylab("Mean modification abundance")+
+    scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+    stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+S7DD <- ggplot(RMA.TPM[RMA.TPM$Accession == "D",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+    geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+    theme_classic() +
+    ylab("Mean modification abundance")+
+    scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+    stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+
+S7DE <- ggplot(RMA.TPM[RMA.TPM$Accession == "E",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+    geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+    theme_classic() +
+    ylab("Mean modification abundance")+
+    scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+    stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+
+S7DF <- ggplot(RMA.TPM[RMA.TPM$Accession == "F",], 
+       (aes(x=Condition, y=-log2(mean_RMA), fill = Condition))) +
+    geom_boxplot(outlier.size = 0.2, outlier.shape = 21) +
+    theme_classic() +
+    ylab("Mean modification abundance")+
+    scale_fill_manual(values = c(WL = "#674B95", WW="#DCDD3B")) +
+    stat_summary(fun = mean, color = "darkred", position = position_dodge(0.75),
+                 geom = "point", shape = 4, size = 1,
+                 show.legend = FALSE) +
+      ylab("log2(modification abundance)") +
+      ylab("") +
+      xlab("") + ylim(0,8) +
+      stat_compare_means(method = "t.test") +
+      theme(axis.text.y = element_text(angle = 90, hjust = 0.5), legend.position = "none")
+
+
+plot_grid(S7DA,S7DB,S7DC,S7DD,S7DE,S7DF)
+
+
+```
 
 # Figure.S8-AtDUS2-mutant-features
 ## Figure S8A
-```{r fig.height=4, fig.width=8, message=FALSE, warning=FALSE, paged.print=TRUE}
+### Sorghum tissue atlas
+```{r}
+TPM.sorghum.atlas <- read.table("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Mccormick/04_sorghum_expression_atlas_tpm.txt", header = T)
+
+Sb.downstream.atlas <- TPM.sorghum.atlas %>%
+  filter(gene %in% c("SORBI_3006G158100","SORBI_3009G132900","SORBI_3008G102000"))
+head(Sb.downstream.atlas)
+
+temp2 <- data.frame(t(Sb.downstream.atlas))
+colnames(temp2) <- temp2[1,]
+Sb.downstream.atlas.clean <- temp2[-1,]
+Sb.downstream.atlas.clean[] <- lapply(Sb.downstream.atlas.clean, as.numeric)
+
+
+Sb.downstream.atlas.clean.log <- Sb.downstream.atlas.clean
+Sb.downstream.atlas.clean.log[] <- lapply(Sb.downstream.atlas.clean.log, 
+                                          function(x) log2(as.numeric(x)))
+```
+
+
+```{r}
+plot_1 <- ggscatter(Sb.downstream.atlas.clean, x = "SORBI_3006G158100", 
+          y = "SORBI_3008G102000", color = "black",
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    xlab = "Relative transcript abundance of SbDUS2 (TPM)", 
+    ylab = "Relative transcript abundance of SbCRRL (TPM)",
+    add.params = list(color = "grey50", fill = "lightgray"))
+
+
+plot_2 <- ggscatter(Sb.downstream.atlas.clean, x = "SORBI_3006G158100", 
+          y = "SORBI_3009G132900", color = "black",
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    xlab = "Relative transcript abundance of SbDUS2 (TPM)", 
+    ylab = "Relative transcript abundance of SbPPDK (TPM)",
+    add.params = list(color = "grey50", fill = "lightgray"))
+
+plot_grid(plot_1, plot_2)
+```
+
+### Sorghum large-drought experiment
+```{r}
+PPDK.DUS2.drought <-read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Varoquax/PPDK.DUS2.drought.csv")
+
+CRRL.DUS2.drought <-read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/07_Atlas/01_Sorghum-tissue-atlas/Varoquax/CRRL.DUS2.drought.csv")
+
+P1 <- ggscatter(PPDK.DUS2.drought, x = "TPM.y", y = "TPM.x", color = "#00436d", 
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    add.params = list(color = "grey", fill = "lightgray")) +
+  ylab("Transcript abundance (TPM) of SbPPDK") +
+  xlab("Transcript abundance (TPM) of SbDUS2")
+
+
+P2 <- ggscatter(CRRL.DUS2.drought, x = "TPM.y", y = "TPM.x", color = "#00436d", 
+    add = "reg.line", conf.int = TRUE, 
+    cor.coef = TRUE, cor.method = "pearson",
+    add.params = list(color = "grey", fill = "lightgray")) +
+  ylab("Transcript abundance (TPM) of SbCRRL") +
+  xlab("Transcript abundance (TPM) of SbDUS2")
+
+plot_grid(P1,P2)
+```
+
+### Arabidopsis AtDUS2 mutant experiment
+```{r , message=FALSE, warning=FALSE, paged.print=TRUE}
 Atdus2.correlation <- read.csv("~/Library/CloudStorage/Box-Box/Projects/9_Sorghum/DUS2/08_FeatureCounts/At-dus2-TPM.hisat2-correlation.csv", header = T, row.names = 1)
 
-Atdus2.correlation 
+head(Atdus2.correlation)
 
 
 plot_3 <- ggscatter(Atdus2.correlation, x = "AT3G49640", 
@@ -597,7 +1095,7 @@ plot_grid(plot_3, plot_4)
 ### Plot normalized counts of AtDUS2
 ```{r}
 dus2.counts <- read.csv("/Users/leon/Desktop/Sorghum-dus2-counts.csv", header = T)
-dus2.counts
+head(dus2.counts)
 
 
 ggplot(dus2.counts, aes(x = Type, y = Count, color = Type)) +
@@ -631,5 +1129,21 @@ ggplot(dus2.counts.sites, aes(x = Genotype, y =Count, color = Genotype)) +
                        show.legend = FALSE)  + xlab("Conidtions") + ylab("Number of modified sites (D sites)") +
             geom_jitter() +   stat_compare_means(method = "t.test") +
             theme(axis.text.y=element_text(angle=90), legend.position = "none")
+```
+
+```{r}
+rm(MF)
+rm(MF_melt)
+rm(MF.Z.melt)
+rm(MF.TPM)
+rm(Sorghum.Drought.D.stats)
+rm(Sorghum.Drought.D)
+rm(Sorghum.Drought.D.clean)
+rm(Sorghum_TPM)
+rm(Sorghum_TPM_melt)
+rm(Sorghum.Drought.RCM)
+rm(Sorghum.Drought.TPM)
+
+gc()
 ```
 
