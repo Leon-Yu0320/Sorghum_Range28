@@ -1,7 +1,11 @@
-#  **Range 28 Sorghum epitranscriptome project**
+#  **Range 28 Sorghum epitranscriptome project**\
 
 **Author: Li'ang Yu, Andrew Nelson**\
 **Date: June 14th, 2022**
+
+<img width="936" alt="Screenshot 2025-02-01 at 8 22 46 PM" src="https://github.com/user-attachments/assets/31bdbe6d-d5b6-4cca-af4e-9b75ece7bddd" />
+
+<img width="1031" alt="Screenshot 2025-02-01 at 8 23 21 PM" src="https://github.com/user-attachments/assets/b03b3cc8-55a3-44f1-8d09-13c92818b8c9" />
 
 - [**Range 28 Sorghum epitranscriptome project**](#range-28-sorghum-epitranscriptome-project)
 - [**Section I Genomic variants and pan-genome analysis of sorghum accessions**](#section-i-genomic-variants-and-pan-genome-analysis-of-sorghum-accessions)
